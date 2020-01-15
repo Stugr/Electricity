@@ -18,7 +18,7 @@ Compare your usage data against wholesale prices
 ------------------------------------------------
 This is the point of this repo
 
-Download your detailed report meter data (csv) from here for citipower: https://www.citipower.com.au/customers/myenergy/ and place it in the input folder
+Download your detailed report meter data (csv) from here for citipower: https://www.citipower.com.au/customers/myenergy/ and place it in the `usage` folder
 
 Then run `Compare-HistoricalElecUsageToWholesalePrices.ps1` which will take a while but spit you out `usageSummarised.csv` (similar to the pricing summary) and `usageWithPricing.csv`
 
