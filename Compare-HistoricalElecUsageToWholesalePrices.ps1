@@ -2,6 +2,9 @@
 # get detailed report meter data from here for citipower https://www.citipower.com.au/customers/myenergy/
 $usageCsv = (Get-Item "$PSScriptRoot\usage\*.csv" | Sort {$_.LastWriteTime} | select -last 1)
 
+$pricesDir = "$PSScriptRoot\prices"
+
+# create output dir
 $outputDir = "$PSScriptRoot\output\"
 New-Item -Path $outputDir -Type Directory -Force | Out-Null
 
@@ -36,4 +39,5 @@ foreach ($obj in $usageSummarised) {
     $obj.minimum = $measured.Minimum
 }
 
+# export summary to csv
 $usageSummarised | Export-Csv -NoTypeInformation (Join-Path $outputDir "usageSummarised.csv") -Force
