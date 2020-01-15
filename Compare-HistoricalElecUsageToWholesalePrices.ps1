@@ -18,6 +18,14 @@ $header[1] = "IntervalDate"
 # we only want recordIndicator 300 which is Interval data record
 $usageData = Get-Content $usageCsv | Select-Object -Skip 2 | Out-String | ConvertFrom-Csv -Header $header | ? { $_.recordIndicator -eq 300 }
 
+# add member properties to our usageData to hold pricing
+$usageData | Add-Member "TotalDayExGST" -membertype noteproperty -Value 0
+$usageData | Add-Member "TotalDayIncGST" -membertype noteproperty -Value 0
+1..48 | % {
+    $usageData | Add-Member "IntervalExGSTPrice$_" -membertype noteproperty -Value 0
+    $usageData | Add-Member "IntervalExGSTCost$_" -membertype noteproperty -Value 0
+}
+
 # create array of objects to hold summarisation of each internalValue
 $usageSummarised = 1..48 | % { [pscustomobject][ordered]@{
     "name" = "IntervalValue$_"
@@ -41,3 +49,41 @@ foreach ($obj in $usageSummarised) {
 
 # export summary to csv
 $usageSummarised | Export-Csv -NoTypeInformation (Join-Path $outputDir "usageSummarised.csv") -Force
+
+# import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
+# divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
+$prices = Import-Csv (Get-Item "$pricesDir\*.csv") | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
+
+$rowCounter = 0
+# loop through each day of usage data
+foreach ($row in $usageData) {
+    # write progress bar
+    Write-Progress -Activity "Matching price data" -Status "$($row.IntervalDate) (day $($rowCounter+1) of $($usageData.count))" -PercentComplete ($rowCounter/$usageData.count*100)
+
+    # convert intervaldate to a usable datetime (ignoring minutes)
+    $rowDateOnly = [datetime]::ParseExact($row.IntervalDate, "yyyyMMdd",$null)
+
+    # get prices that match that day (will make the next filtering by hour much quicker)
+    $datePrices = $prices | ? { $_.settlementdate.date -eq $rowDateOnly.date }
+
+    # loop through the days intervals
+    foreach ($i in 1..48) {
+        # add hours and minutes to the usable datetime
+        $rowDateTime = $rowDateOnly.AddHours(0.5 * ($i - 1))
+
+        # find the matching price for the interval
+        $matchingPrice = $datePrices | ? { $_.settlementdate -eq $rowDateTime }
+
+        # add member properties to our usageData to hold pricing
+        $row."IntervalExGSTPrice$i" = $matchingPrice.exGST
+        $row."IntervalExGSTCost$i" = $matchingPrice.exGST * $row."IntervalValue$i"
+        $row.TotalDayExGST += $matchingPrice.exGST * $row."IntervalValue$i"
+        $row.TotalDayIncGST += $matchingPrice.incGST * $row."IntervalValue$i"
+    }
+    
+    # increment counter for progress bar
+    $rowCounter++
+}
+
+# export usage data with pricing
+$usageData | ? { $_.IntervalDate -like "201*"} | Export-Csv -NoTypeInformation (Join-Path $outputDir "usageWithPricing.csv") -Force
