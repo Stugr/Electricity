@@ -10,7 +10,7 @@ foreach ($year in $years) {
 
     # import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
     # divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
-    $prices = Import-Csv (Get-Item "$pricesDir\*$year*.csv") | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
+    $prices = Import-Csv (Get-Item "$pricesDir\*$year*.csv") | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGST";E={$_.rrp/1000}}, @{N="incGST";E={($_.rrp/1000)*1.1}}
 
     # get unique hour:min
     $timeIntervals = $prices | select -Unique @{N="hour";E={($_.settlementdate.hour)}}, @{N="minute";E={"{0:00}" -f $_.settlementdate.minute}} | sort hour, minute
