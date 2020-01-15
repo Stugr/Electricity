@@ -1,5 +1,9 @@
 ﻿# get last modified csv file from the usage folder
+# get detailed report meter data from here for citipower https://www.citipower.com.au/customers/myenergy/
 $usageCsv = (Get-Item "$PSScriptRoot\usage\*.csv" | Sort {$_.LastWriteTime} | select -last 1)
+
+$outputDir = "$PSScriptRoot\output\"
+New-Item -Path $outputDir -Type Directory -Force | Out-Null
 
 # csv doesn't have a header, so  create headers to hold all 48 time intervals (1-48)
 # start at -1 to leave 2 columns at the front spare
@@ -32,3 +36,4 @@ foreach ($obj in $usageSummarised) {
     $obj.minimum = $measured.Minimum
 }
 
+$usageSummarised | Export-Csv -NoTypeInformation (Join-Path $outputDir "usageSummarised.csv") -Force
