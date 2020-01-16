@@ -50,11 +50,8 @@ foreach ($obj in $usageSummarised) {
 # export summary to csv
 $usageSummarised | Export-Csv -NoTypeInformation (Join-Path $outputDir "usageSummarised.csv") -Force
 
-# import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
-# divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
-$prices = Import-Csv (Get-Item "$pricesDir\*.csv") | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
-
 $rowCounter = 0
+$currentMonth = $null
 # loop through each day of usage data
 foreach ($row in $usageData) {
     # write progress bar
@@ -62,6 +59,16 @@ foreach ($row in $usageData) {
 
     # convert intervaldate to a usable datetime (ignoring minutes)
     $rowDateOnly = [datetime]::ParseExact($row.IntervalDate, "yyyyMMdd",$null)
+
+    # if we are into a new month
+    if ($rowDateOnly.Month -ne $currentMonth) {
+        $currentMonth = $rowDateOnly.Month
+
+        # read this month and the next (due to the shifting back of 30 mins)
+        # import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
+        # divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
+        $prices = Import-Csv -Path @((Get-Item "$pricesDir\*$($rowDateOnly.ToString("yyyyMM"))*.csv").fullname,(Get-Item "$pricesDir\*$($rowDateOnly.AddMonths(1).ToString("yyyyMM"))*.csv").fullname) | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
+    }
 
     # get prices that match that day (will make the next filtering by hour much quicker)
     $datePrices = $prices | ? { $_.settlementdate.date -eq $rowDateOnly.date }
