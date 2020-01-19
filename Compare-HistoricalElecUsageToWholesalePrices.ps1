@@ -64,11 +64,10 @@ foreach ($row in $usageData) {
     if ($rowDateOnly.Month -ne $currentMonth) {
         $currentMonth = $rowDateOnly.Month
 
-        # read this month and the next (due to the shifting back of 30 mins) if they exist
-        if ($csvsToImport = @((Get-Item "$pricesDir\*$($rowDateOnly.ToString("yyyyMM"))*.csv").fullname,(Get-Item "$pricesDir\*$($rowDateOnly.AddMonths(1).ToString("yyyyMM"))*.csv").fullname) | ? { $_ -ne $null }) {
-            # import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
-            # divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
-            $prices = Import-Csv -Path $csvsToImport | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
+        # import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
+        # divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
+        if ($csvFile = (Get-Item "$pricesDir\*$($rowDateOnly.ToString("yyyyMM"))*.csv").fullname) {
+            $prices = Import-Csv $csvFile | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
         }
     }
 
