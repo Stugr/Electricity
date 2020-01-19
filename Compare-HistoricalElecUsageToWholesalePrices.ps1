@@ -64,13 +64,16 @@ foreach ($row in $usageData) {
     if ($rowDateOnly.Month -ne $currentMonth) {
         $currentMonth = $rowDateOnly.Month
 
-        # read this month and the next (due to the shifting back of 30 mins)
-        # import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
-        # divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
-        $prices = Import-Csv -Path @((Get-Item "$pricesDir\*$($rowDateOnly.ToString("yyyyMM"))*.csv").fullname,(Get-Item "$pricesDir\*$($rowDateOnly.AddMonths(1).ToString("yyyyMM"))*.csv").fullname) | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
+        # read this month and the next (due to the shifting back of 30 mins) if they exist
+        if ($csvsToImport = @((Get-Item "$pricesDir\*$($rowDateOnly.ToString("yyyyMM"))*.csv").fullname,(Get-Item "$pricesDir\*$($rowDateOnly.AddMonths(1).ToString("yyyyMM"))*.csv").fullname) | ? { $_ -ne $null }) {
+            # import prices, shifting back the timestamps by 30 mins to align with the start of the 30 min interval instead of the end
+            # divide rrp by 1000 to shift from megawatt hour to kilowatt hour, and calculate a gst inclusive price too
+            $prices = Import-Csv -Path $csvsToImport | select @{N="settlementdate";E={([DateTime]$_.settlementdate).addhours(-.5)}}, @{N="exGst";E={$_.rrp/1000}}, @{N="incGst";E={($_.rrp/1000)*1.1}}
+        }
     }
 
     # get prices that match that day (will make the next filtering by hour much quicker)
+    # logic was originally written to search instead of trusting the sorting of the file, so might re-write someday
     $datePrices = $prices | ? { $_.settlementdate.date -eq $rowDateOnly.date }
 
     # loop through the days intervals
