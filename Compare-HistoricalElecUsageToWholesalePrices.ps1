@@ -8,6 +8,10 @@ $pricesDir = "$PSScriptRoot\prices"
 $outputDir = "$PSScriptRoot\output\"
 New-Item -Path $outputDir -Type Directory -Force | Out-Null
 
+# values taken manually from https://api.amberelectric.com.au/prices/listprices for now - are current (2020) values so won't be accurate for 2018/2019
+$fixedKWHprice = 0.1086346
+$lossFactor = 1.0419
+
 # csv doesn't have a header, so  create headers to hold all 48 time intervals (1-48)
 # start at -1 to leave 2 columns at the front spare
 $header = -1..48 | % { "IntervalValue$_" }
@@ -21,9 +25,14 @@ $usageData = Get-Content $usageCsv | Select-Object -Skip 2 | Out-String | Conver
 # add member properties to our usageData to hold pricing
 $usageData | Add-Member "TotalDayExGST" -membertype noteproperty -Value 0
 $usageData | Add-Member "TotalDayIncGST" -membertype noteproperty -Value 0
+$usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0
 1..48 | % {
     $usageData | Add-Member "IntervalExGSTPrice$_" -membertype noteproperty -Value 0
     $usageData | Add-Member "IntervalExGSTCost$_" -membertype noteproperty -Value 0
+    $usageData | Add-Member "IntervalIncGSTPrice$_" -membertype noteproperty -Value 0
+    $usageData | Add-Member "IntervalIncGSTCost$_" -membertype noteproperty -Value 0
+    $usageData | Add-Member "IntervalAmberPrice$_" -membertype noteproperty -Value 0
+    $usageData | Add-Member "IntervalAmberCost$_" -membertype noteproperty -Value 0
 }
 
 # create array of objects to hold summarisation of each internalValue
@@ -86,8 +95,13 @@ foreach ($row in $usageData) {
         # add member properties to our usageData to hold pricing
         $row."IntervalExGSTPrice$i" = $matchingPrice.exGST
         $row."IntervalExGSTCost$i" = $matchingPrice.exGST * $row."IntervalValue$i"
-        $row.TotalDayExGST += $matchingPrice.exGST * $row."IntervalValue$i"
-        $row.TotalDayIncGST += $matchingPrice.incGST * $row."IntervalValue$i"
+        $row."IntervalIncGSTPrice$i" = $matchingPrice.incGST
+        $row."IntervalIncGSTCost$i" = $matchingPrice.incGST * $row."IntervalValue$i"
+        $row."IntervalAmberPrice$i" = $fixedKWHprice + ($matchingPrice.incGST * $lossFactor)
+        $row."IntervalAmberCost$i" = $row."IntervalAmberPrice$i" * $row."IntervalValue$i"
+        $row.TotalDayExGST += $row."IntervalExGSTCost$i"
+        $row.TotalDayIncGST += $row."IntervalIncGSTCost$i"
+        $row.TotalDayAmber += $row."IntervalAmberCost$i"
     }
     
     # increment counter for progress bar
