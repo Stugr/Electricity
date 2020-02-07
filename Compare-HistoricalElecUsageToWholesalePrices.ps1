@@ -12,6 +12,36 @@ New-Item -Path $outputDir -Type Directory -Force | Out-Null
 $fixedKWHprice = 0.1086346
 $lossFactor = 1.0419
 
+# add in our incumbent pricing
+$incumbentPricingDateRanges = @(
+    [pscustomobject][ordered]@{
+        'startDate' = '01/01/2018'; #ddMMyyyy
+        'endDate' = '06/10/2019'; #ddMMyyyy
+        'supplyCharge' = 61.6;
+        'peakRate' = 14.63;
+    },
+    [pscustomobject][ordered]@{
+        'startDate' = '07/10/2019'; #ddMMyyyy
+        'endDate' = Get-Date; #ddMMyyyy
+        'supplyCharge' = 112.2;
+        'peakRate' = 19.91;
+    }
+)
+
+# convert incumbent pricing to datetime objects
+foreach ($range in $incumbentPricingDateRanges) {
+    if (-not $range.startDate -as [DateTime]) {
+        $range.startDate = [datetime]::ParseExact($range.startDate, "ddMMyyyy",$null)    
+    }
+    
+    if (-not $range.endDate -as [DateTime]) {
+        $range.endDate = [datetime]::ParseExact($range.endDate, "ddMMyyyy",$null)    
+    }
+}
+
+# sort incumbent pricing array by earliest date
+$incumbentPricingDateRanges = $incumbentPricingDateRanges | Sort-Object startDate
+
 # csv doesn't have a header, so  create headers to hold all 48 time intervals (1-48)
 # start at -1 to leave 2 columns at the front spare
 $header = -1..48 | % { "IntervalValue$_" }
@@ -25,7 +55,8 @@ $usageData = Get-Content $usageCsv | Select-Object -Skip 2 | Out-String | Conver
 # add member properties to our usageData to hold pricing
 $usageData | Add-Member "TotalDayExGST" -membertype noteproperty -Value 0
 $usageData | Add-Member "TotalDayIncGST" -membertype noteproperty -Value 0
-$usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0
+$usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0 # not including ambers $10/mth supply charge - added later when graphing/analysing
+$usageData | Add-Member "TotalDayIncumbent" -membertype noteproperty -Value 0 # this will include the supply charge that normal retailers charge
 1..48 | % {
     $usageData | Add-Member "IntervalExGSTPrice$_" -membertype noteproperty -Value 0
     $usageData | Add-Member "IntervalExGSTCost$_" -membertype noteproperty -Value 0
@@ -33,6 +64,8 @@ $usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0
     $usageData | Add-Member "IntervalIncGSTCost$_" -membertype noteproperty -Value 0
     $usageData | Add-Member "IntervalAmberPrice$_" -membertype noteproperty -Value 0
     $usageData | Add-Member "IntervalAmberCost$_" -membertype noteproperty -Value 0
+    $usageData | Add-Member "IntervalIncumbentPrice$_" -membertype noteproperty -Value 0
+    $usageData | Add-Member "IntervalIncumbentCost$_" -membertype noteproperty -Value 0
 }
 
 # create array of objects to hold summarisation of each internalValue
@@ -84,6 +117,12 @@ foreach ($row in $usageData) {
     # logic was originally written to search instead of trusting the sorting of the file, so might re-write someday
     $datePrices = $prices | ? { $_.settlementdate.date -eq $rowDateOnly.date }
 
+    # get incumbent prices that match that day
+    $incumbentPrices = $incumbentPricingDateRanges | ? { $rowDateOnly -ge $_.startDate -and $rowDateOnly -le $_.endDate }
+
+    # add supply charge
+    $row.TotalDayIncumbent = $incumbentPrices.supplyCharge
+
     # loop through the days intervals
     foreach ($i in 1..48) {
         # add hours and minutes to the usable datetime
@@ -99,9 +138,12 @@ foreach ($row in $usageData) {
         $row."IntervalIncGSTCost$i" = $matchingPrice.incGST * $row."IntervalValue$i"
         $row."IntervalAmberPrice$i" = $fixedKWHprice + ($matchingPrice.incGST * $lossFactor)
         $row."IntervalAmberCost$i" = $row."IntervalAmberPrice$i" * $row."IntervalValue$i"
+        $row."IntervalIncumbentPrice$i" = $incumbentPrices.peakRate
+        $row."IntervalIncumbentCost$i" = $row."IntervalIncumbentPrice$i" * $row."IntervalValue$i"
         $row.TotalDayExGST += $row."IntervalExGSTCost$i"
         $row.TotalDayIncGST += $row."IntervalIncGSTCost$i"
         $row.TotalDayAmber += $row."IntervalAmberCost$i"
+        $row.TotalDayIncumbent += $row."IntervalIncumbentCost$i"
     }
     
     # increment counter for progress bar
