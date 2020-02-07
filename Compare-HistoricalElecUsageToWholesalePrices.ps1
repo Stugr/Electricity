@@ -30,12 +30,12 @@ $incumbentPricingDateRanges = @(
 
 # convert incumbent pricing to datetime objects
 foreach ($range in $incumbentPricingDateRanges) {
-    if (-not $range.startDate -as [DateTime]) {
-        $range.startDate = [datetime]::ParseExact($range.startDate, "ddMMyyyy",$null)    
+    if ($range.startDate -isNot [DateTime]) {
+        $range.startDate = [datetime]::ParseExact($range.startDate, "dd/MM/yyyy",$null)    
     }
     
-    if (-not $range.endDate -as [DateTime]) {
-        $range.endDate = [datetime]::ParseExact($range.endDate, "ddMMyyyy",$null)    
+    if ($range.endDate -isNot [DateTime]) {
+        $range.endDate = [datetime]::ParseExact($range.endDate, "dd/MM/yyyy",$null)    
     }
 }
 
