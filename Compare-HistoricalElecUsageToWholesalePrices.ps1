@@ -17,14 +17,14 @@ $incumbentPricingDateRanges = @(
     [pscustomobject][ordered]@{
         'startDate' = '01/01/2018'; #ddMMyyyy
         'endDate' = '06/10/2019'; #ddMMyyyy
-        'supplyCharge' = 61.6;
-        'peakRate' = 14.63;
+        'supplyCharge' = 0.616;
+        'peakRate' = 0.1463;
     },
     [pscustomobject][ordered]@{
         'startDate' = '07/10/2019'; #ddMMyyyy
         'endDate' = Get-Date; #ddMMyyyy
-        'supplyCharge' = 112.2;
-        'peakRate' = 19.91;
+        'supplyCharge' = 1.122;
+        'peakRate' = 0.1991;
     }
 )
 
