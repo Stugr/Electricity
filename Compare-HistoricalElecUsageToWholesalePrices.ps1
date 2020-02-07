@@ -53,6 +53,7 @@ $header[1] = "IntervalDate"
 $usageData = Get-Content $usageCsv | Select-Object -Skip 2 | Out-String | ConvertFrom-Csv -Header $header | ? { $_.recordIndicator -eq 300 }
 
 # add member properties to our usageData to hold pricing
+$usageData | Add-Member "TotalDayKWH" -membertype noteproperty -Value 0
 $usageData | Add-Member "TotalDayExGST" -membertype noteproperty -Value 0
 $usageData | Add-Member "TotalDayIncGST" -membertype noteproperty -Value 0
 $usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0 # not including ambers $10/mth supply charge - added later when graphing/analysing
@@ -144,6 +145,7 @@ foreach ($row in $usageData) {
         $row.TotalDayIncGST += $row."IntervalIncGSTCost$i"
         $row.TotalDayAmber += $row."IntervalAmberCost$i"
         $row.TotalDayIncumbent += $row."IntervalIncumbentCost$i"
+        $row.TotalDayKWH += $row."IntervalValue$i"
     }
     
     # increment counter for progress bar
