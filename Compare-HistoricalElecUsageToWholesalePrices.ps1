@@ -37,8 +37,8 @@ $usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0
 
 # create array of objects to hold summarisation of each internalValue
 $usageSummarised = 1..48 | % { [pscustomobject][ordered]@{
-    "name" = "IntervalValue$_"
-    "count" = 0
+    "name" = "IntervalValue$_";
+    "count" = 0;
     "average" = 0;
     "sum" = 0;
     "maximum" = 0;
