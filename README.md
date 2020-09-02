@@ -37,7 +37,7 @@ Then run `Compare-HistoricalElecUsageToWholesalePrices.ps1` which will take a wh
 Analyse the data - maybe with graphs
 ------------------------------------
 
-I used an Excel pivot table to graph TotalDayAmber vs TotalDayIncumbent
+I used an Excel pivot table to graph `TotalDayAmber` vs `TotalDayIncumbent`
 
 ![graph-diff](../readme/graph-diff.png?raw=true)
 
