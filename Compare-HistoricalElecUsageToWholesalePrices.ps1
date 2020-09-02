@@ -153,4 +153,4 @@ foreach ($row in $usageData) {
 }
 
 # export usage data with pricing
-$usageData | ? { $_.IntervalDate -like "201*"} | Export-Csv -NoTypeInformation (Join-Path $outputDir "usageWithPricing.csv") -Force
+$usageData | Export-Csv -NoTypeInformation (Join-Path $outputDir "usageWithPricing.csv") -Force
