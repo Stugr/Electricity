@@ -56,7 +56,7 @@ $usageData = Get-Content $usageCsv | Select-Object -Skip 2 | Out-String | Conver
 $usageData | Add-Member "TotalDayKWH" -membertype noteproperty -Value 0
 $usageData | Add-Member "TotalDayExGST" -membertype noteproperty -Value 0
 $usageData | Add-Member "TotalDayIncGST" -membertype noteproperty -Value 0
-$usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0 # not including ambers $10/mth supply charge - added later when graphing/analysing
+$usageData | Add-Member "TotalDayAmber" -membertype noteproperty -Value 0 # this will include ambers $10/mth charge
 $usageData | Add-Member "TotalDayIncumbent" -membertype noteproperty -Value 0 # this will include the supply charge that normal retailers charge
 1..48 | % {
     $usageData | Add-Member "IntervalExGSTPrice$_" -membertype noteproperty -Value 0
@@ -123,6 +123,9 @@ foreach ($row in $usageData) {
 
     # add supply charge
     $row.TotalDayIncumbent = $incumbentPrices.supplyCharge
+
+    # add amber supply charge ($10/number of days in month)
+    $row.TotalDayAmber = [math]::Round(10/[DateTime]::DaysInMonth($rowDateOnly.Year, $rowDateOnly.Month), 4)
 
     # loop through the days intervals
     foreach ($i in 1..48) {
