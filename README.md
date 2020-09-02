@@ -34,3 +34,11 @@ Then run `Compare-HistoricalElecUsageToWholesalePrices.ps1` which will take a wh
 
 `IntervalExGSTPrice1/2/etc` is the wholesale price per kwh and `IntervalExGSTCost1/2/etc` is the `usage in kwh (IntervalValue1/2/etc) * price per kwh`
 
+Analyse the data - maybe with graphs
+------------------------------------
+
+I used an Excel pivot table to graph TotalDayAmber vs TotalDayIncumbent
+
+![graph-diff](../readme/graph-diff.png?raw=true)
+
+You can see once the incumbent prices went up in late 2019, Amber became a much better proposition
